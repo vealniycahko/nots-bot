@@ -1,0 +1,52 @@
+version: '3.9'
+services:
+  postgres:
+    container_name: app-postgres
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASS}
+      - POSTGRES_DB=${POSTGRES_NAME}
+    ports:
+      - '${POSTGRES_PORT}:5432'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', '${POSTGRES_USER}', '-d', '${POSTGRES_NAME}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  
+  flyway:
+    container_name: app-flyway
+    image: flyway/flyway:latest
+    command: -url=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_NAME} -user=${POSTGRES_USER} -password=${POSTGRES_PASS} migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./bot/migrations:/flyway/sql
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    
+  bot:
+    container_name: app-bot
+    build:
+      context: ./bot
+      dockerfile: ./Dockerfile
+    command: sh -c 'python3 main.py'
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_NAME=${POSTGRES_NAME}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASS=${POSTGRES_PASS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped
+  

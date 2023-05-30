@@ -1,13 +1,11 @@
 import os
 import logging
-from pathlib import Path
 
 from aiogram import Bot, Dispatcher, executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from asyncpg.pool import Pool
 
 from aiobot.utils.database import create_pool
-from aiobot.utils.commands import set_commands
-from aiobot.handlers.base import register_base
 
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -16,15 +14,20 @@ bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
-
-async def on_startup(dp: Dispatcher):
-    await create_pool()
+pool = create_pool()
 
 
-def setup(dp: Dispatcher):
-    # import aiobot.handlers
+def register_handlers(dp: Dispatcher, pool: Pool):
+    from aiobot.handlers.base import register_base
+    from aiobot.handlers.create import register_create
     
-    logs_path = str(Path(__file__).parent.parent) + '/logs/bot.log'
+    register_base(dp, pool)
+    register_create(dp, pool)
+
+
+
+def setup(dp: Dispatcher, pool: Pool):  
+    logs_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs', 'bot.log')
     
     logging.basicConfig(
         level=logging.DEBUG,
@@ -35,11 +38,9 @@ def setup(dp: Dispatcher):
         ]
     )
     
-    register_base(dp)
-        
-    executor.start_polling(dp, on_startup=on_startup)
+    register_handlers(dp, pool)
     
-    
-# set_commands(bot)
+    executor.start_polling(dp)
 
-setup(dp)
+
+setup(dp, pool)

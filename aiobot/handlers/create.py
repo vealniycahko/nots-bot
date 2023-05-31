@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from aiogram.types import Message
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -23,7 +25,7 @@ async def get_note_title(message: Message, state: FSMContext):
     note_title = message.text
     
     if len(note_title) > 100:
-        await message.answer('О, нет! Можно не больше 100 символов... Попробуй еще раз')      
+        await message.answer('О, нет! Допустимо не более 100 символов. Попробуй еще раз')      
     else:
         await message.answer('Окей, теперь описание заметки')
         await state.update_data(title=note_title)
@@ -39,26 +41,27 @@ async def get_note_text(message: Message, state: FSMContext):
     await state.set_state(CreateNoteStates.WAITING_TIME)
 
 
-# @dp.message_handler(state=CreateNoteStates.WAITING_TIME)
-# async def get_reminder_time(message: Message, state: FSMContext, pool: Pool):
-#     note_time = message.text
+@dp.message_handler(state=CreateNoteStates.WAITING_TIME)
+async def get_reminder_time(message: Message, state: FSMContext):
+    note_time = message.text
     
-#     try:
-#         time_obj = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
-#         data = await state.get_data()
+    try:
+        time_obj = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
+        data = await state.get_data()
         
-#         note_title = data.get('title')
-#         note_text = data.get('text')
-#         owner_id = message.from_user.id
+        note_title = data.get('title')
+        note_text = data.get('text')
+        owner_id = message.from_user.id
         
-#         async with pool.acquire() as connection:
-#             await connection.execute(
-#                 'INSERT INTO notes (owner_id, note_title, note_text, reminder_time) VALUES ($1, $2, $3, $4)',
-#                 owner_id, note_title, note_text, time_obj
-#             )
+        if time_obj <= datetime.now():
+            await message.answer('Это время выбрать невозможно, оно уже прошло...')
+            return
+        
+        query = 'INSERT INTO notes (owner_id, note_title, note_text, reminder_time) VALUES ($1, $2, $3, $4);'
+        await pg.execute(query, owner_id, note_title, note_text, time_obj, execute=True)
             
-#         await message.answer('Успех! Заметка создана')
-#         await state.finish()
+        await message.answer('Успех! Заметка создана')
+        await state.finish()
         
-#     except (ValueError, TypeError):
-#         await message.answer('Неверный формат даты и времени :( Попробуй еще раз')
+    except (ValueError, TypeError):
+        await message.answer('Неверный формат даты и времени :( Попробуй еще раз')

@@ -8,7 +8,6 @@ from utils import config
 
 
 class DataBase:
-
     def __init__(self):
         self.pool: Union[Pool, None] = None
 

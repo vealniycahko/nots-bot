@@ -7,5 +7,6 @@ async def set_default_commands(dp: Dispatcher):
         [
             BotCommand('start', 'просто начать'),
             BotCommand('create', 'создать заметку'),
+            BotCommand('notes', 'просмотр заметок'),
         ]
     )

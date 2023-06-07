@@ -4,8 +4,8 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 skip_cancel_kbrd = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text='Пропустить', callback_data='skip_data'),
-            InlineKeyboardButton(text='Отмена', callback_data='cancel'),
+            InlineKeyboardButton(text='Пропустить', callback_data='skip_data_call'),
+            InlineKeyboardButton(text='Отмена', callback_data='cancel_call'),
         ]
     ],
     one_time_keyboard=True,
@@ -16,7 +16,7 @@ skip_cancel_kbrd = InlineKeyboardMarkup(
 cancel_kbrd = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text='Отмена', callback_data='cancel'),
+            InlineKeyboardButton(text='Отмена', callback_data='cancel_call'),
         ]
     ],
     one_time_keyboard=True,
@@ -27,10 +27,30 @@ cancel_kbrd = InlineKeyboardMarkup(
 start_kbrd = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text='Создать заметку', callback_data='1'),
+            InlineKeyboardButton(text='Создать заметку', callback_data='create_call'),
+            InlineKeyboardButton(text='Мои заметки', callback_data='notes_call')
         ],
+    ],
+    one_time_keyboard=True,
+    resize_keyboard=True
+)
+
+
+create_kbrd = InlineKeyboardMarkup(
+    inline_keyboard=[
         [
-            InlineKeyboardButton(text='Мои заметки', callback_data='2')
+            InlineKeyboardButton(text='Создать заметку', callback_data='create_call'),
+        ],
+    ],
+    one_time_keyboard=True,
+    resize_keyboard=True
+)
+
+
+return_kbrd = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text='Вернуться', callback_data='start_call'),
         ],
     ],
     one_time_keyboard=True,

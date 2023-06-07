@@ -5,8 +5,7 @@ from aiogram.dispatcher.storage import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from loader import dp, pg
-from keyboards.buttons import skip_cancel_kbrd, cancel_kbrd
-from handlers.start import start
+from keyboards.buttons import skip_cancel_kbrd, cancel_kbrd, return_kbrd
 
 
 class CreateNoteStates(StatesGroup):
@@ -17,8 +16,18 @@ class CreateNoteStates(StatesGroup):
 
 @dp.message_handler(commands=['create'])
 async def create_note(message: Message, state: FSMContext):
-    await message.answer(text='Введи название заметки', reply_markup=cancel_kbrd)
+    await create_handler(message, state)
 
+
+@dp.callback_query_handler(lambda callback_query: callback_query.data == 'create_call')
+async def create_note_call(callback_query: CallbackQuery, state: FSMContext):
+    await callback_query.answer()
+    await create_handler(callback_query.message, state)
+
+
+async def create_handler(message: Message, state: FSMContext):
+    await message.answer(text='Введи название заметки', reply_markup=cancel_kbrd)
+            
     await state.set_state(CreateNoteStates.WAITING_TITLE)
 
 
@@ -66,23 +75,15 @@ async def get_reminder_time(message: Message, state: FSMContext):
     note_text = data.get('text')
     owner_id = message.from_user.id
     
-    query = "INSERT INTO notes (owner_id, note_title, note_text, reminder_time) VALUES ($1, $2, $3, $4);"
+    query = """ INSERT INTO notes (owner_id, note_title, note_text, reminder_time) VALUES ($1, $2, $3, $4); """
     values = (owner_id, note_title, note_text, time_obj)
     await pg.execute(query, *values, execute=True)
         
-    await message.answer('Успех! Заметка создана')
+    await message.answer('Успех! Заметка создана', reply_markup=return_kbrd)
     await state.finish()
 
 
-@dp.callback_query_handler(lambda callback_query: callback_query.data == 'cancel', state='*')
-async def cancel_creation(callback_query: CallbackQuery, state: FSMContext):
-    await callback_query.answer() # Ответить на колбэк, чтобы убрать уведомление "нажато"
-    await state.finish()
-
-    await start(callback_query.message)
-
-
-@dp.callback_query_handler(lambda callback_query: callback_query.data == 'skip_data', state='*')
+@dp.callback_query_handler(lambda callback_query: callback_query.data == 'skip_data_call', state='*')
 async def skip_note_title(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
     

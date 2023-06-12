@@ -1,4 +1,5 @@
 from aiogram.types import Message, CallbackQuery
+from aiogram.dispatcher.storage import FSMContext
 
 from loader import dp, pg
 from keyboards.notes import notes_inline_kbrd, single_note_kbrd
@@ -7,8 +8,7 @@ from keyboards.buttons import return_kbrd
 
 @dp.message_handler(commands=['notes'])
 async def create_note(message: Message):
-    await notes_handler(message )
-
+    await notes_handler(message)
 
 @dp.callback_query_handler(lambda callback_query: callback_query.data == 'notes_call')
 async def create_note_call(callback_query: CallbackQuery):
@@ -16,7 +16,14 @@ async def create_note_call(callback_query: CallbackQuery):
     callback_query.message.from_user.id = callback_query.from_user.id
     
     await notes_handler(callback_query.message)
-
+    
+@dp.callback_query_handler(lambda callback_query: callback_query.data == 'notes_call', state = '*')
+async def create_note_call(callback_query: CallbackQuery, state: FSMContext):
+    await callback_query.answer()
+    callback_query.message.from_user.id = callback_query.from_user.id
+    await state.finish()
+    
+    await notes_handler(callback_query.message)
 
 async def notes_handler(message: Message):
     query = """ SELECT * FROM notes WHERE owner_id = $1
@@ -48,11 +55,21 @@ async def handle_every_note(callback_query: CallbackQuery):
     
     await callback_query.message.answer(text=text, reply_markup=kbrd)
     
-    
+
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('delete'))
-async def handle_every_note(callback_query: CallbackQuery):
+async def dalete_note_call(callback_query: CallbackQuery):
+    await callback_query.answer()
+    await dalete_note(callback_query)
+    
+@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('delete'), state='*')
+async def dalete_note_state(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
     
+    await state.finish()
+    
+    await dalete_note(callback_query)
+    
+async def dalete_note(callback_query: CallbackQuery):   
     query = """ DELETE FROM notes WHERE id = $1; """
     note_id = int(callback_query.data[6:])
     note = await pg.execute(query, note_id, execute=True)

@@ -44,3 +44,38 @@ async def single_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
     )
     
     return note_kbrd
+
+
+async def notify_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
+    note_kbrd = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text='Готово', callback_data=f'complete{note_id}'),
+                InlineKeyboardButton(text='Новое время', callback_data=f'newtime{note_id}'),
+                InlineKeyboardButton(text='Удалить', callback_data=f'delete{note_id}'),
+            ],
+            [
+                InlineKeyboardButton(text='Мои заметки', callback_data='notes_call'),
+            ],
+        ],
+        one_time_keyboard=True,
+        resize_keyboard=True
+    )
+    
+    return note_kbrd
+
+
+async def new_time_kbrd(note_id: int) -> InlineKeyboardMarkup:
+    kbrd = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text='Готово', callback_data=f'complete{note_id}'),
+                InlineKeyboardButton(text='Удалить заметку', callback_data=f'delete{note_id}'),
+                InlineKeyboardButton(text='Отмена', callback_data='cancel_call'),
+            ],
+        ],
+        one_time_keyboard=True,
+        resize_keyboard=True
+    )
+    
+    return kbrd

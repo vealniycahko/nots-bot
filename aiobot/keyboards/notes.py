@@ -12,7 +12,7 @@ async def notes_inline_kbrd(notes: List[Record]) -> InlineKeyboardMarkup:
     
     for row in notes:
         if row['reminder_time']:
-            text = f'{row["note_title"]} -- {row["reminder_time"].strftime("%d.%m.%Y %H:%M")}'
+            text = f'{row["note_title"]} {row["reminder_time"].strftime("%d.%m.%Y %H:%M")}'
         else:
             text = f'{row["note_title"]}'
         callback = f'open{row["id"]}'

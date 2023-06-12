@@ -2,6 +2,7 @@ from aiogram.types import Message, CallbackQuery
 
 from loader import dp, pg
 from keyboards.notes import notes_inline_kbrd, single_note_kbrd
+from keyboards.buttons import return_kbrd
 
 
 @dp.message_handler(commands=['notes'])
@@ -19,7 +20,8 @@ async def create_note_call(callback_query: CallbackQuery):
 
 async def notes_handler(message: Message):
     query = """ SELECT * FROM notes WHERE owner_id = $1
-        ORDER BY reminder_time ASC; """
+        ORDER BY reminder_time ASC
+        LIMIT 95; """
     value = message.from_user.id
     notes = await pg.execute(query, value, fetch=True)
     
@@ -45,3 +47,14 @@ async def handle_every_note(callback_query: CallbackQuery):
     kbrd = await single_note_kbrd(note['id'])
     
     await callback_query.message.answer(text=text, reply_markup=kbrd)
+    
+    
+@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('delete'))
+async def handle_every_note(callback_query: CallbackQuery):
+    await callback_query.answer()
+    
+    query = """ DELETE FROM notes WHERE id = $1; """
+    note_id = int(callback_query.data[6:])
+    note = await pg.execute(query, note_id, execute=True)
+    
+    await callback_query.message.answer(text='Заметка успешно уделена', reply_markup=return_kbrd)

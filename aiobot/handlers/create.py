@@ -58,16 +58,16 @@ async def get_reminder_time(message: Message, state: FSMContext):
         note_time = message.text
         
         try:
-            time_obj = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
+            note_time = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
             
-            if time_obj <= datetime.now():
+            if note_time <= datetime.now():
                 await message.answer('Это время выбрать невозможно, оно уже прошло...', reply_markup=skip_cancel_kbrd)
                 return
         
         except ValueError:
             await message.answer('Неверный формат даты и времени :( Попробуй еще раз', reply_markup=skip_cancel_kbrd)
     else:
-        time_obj = None
+        note_time = None
     
     data = await state.get_data()
     
@@ -76,7 +76,7 @@ async def get_reminder_time(message: Message, state: FSMContext):
     owner_id = message.from_user.id
     
     query = """ INSERT INTO notes (owner_id, note_title, note_text, reminder_time) VALUES ($1, $2, $3, $4); """
-    values = (owner_id, note_title, note_text, time_obj)
+    values = (owner_id, note_title, note_text, note_time)
     await pg.execute(query, *values, execute=True)
         
     await message.answer('Успех! Заметка создана', reply_markup=return_kbrd)

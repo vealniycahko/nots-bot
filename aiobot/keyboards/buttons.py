@@ -50,7 +50,33 @@ create_kbrd = InlineKeyboardMarkup(
 return_kbrd = InlineKeyboardMarkup(
     inline_keyboard=[
         [
+            InlineKeyboardButton(text='Мои заметки', callback_data='notes_call'),
             InlineKeyboardButton(text='Вернуться', callback_data='start_call'),
+        ],
+    ],
+    one_time_keyboard=True,
+    resize_keyboard=True
+)
+
+
+skip_update_kbrd = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text='Пропустить', callback_data='skip_update_call'),
+            InlineKeyboardButton(text='Отмена', callback_data='notes_call'),
+        ],
+    ],
+    one_time_keyboard=True,
+    resize_keyboard=True
+)
+
+
+skip_clean_update_kbrd = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text='Пропустить', callback_data='skip_update_call'),
+            InlineKeyboardButton(text='Очистить', callback_data='clean_update_call'),
+            InlineKeyboardButton(text='Отмена', callback_data='notes_call'),
         ],
     ],
     one_time_keyboard=True,

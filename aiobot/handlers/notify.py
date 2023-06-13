@@ -7,18 +7,32 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from loader import bot, dp, pg
 from keyboards.notes import notify_note_kbrd, new_time_kbrd
 from keyboards.buttons import return_kbrd
+from utils import emoji
+
+
+"""
+Уведомление пользовалей:
+
+Отправка сообщений при наступлении времени напоминания (это происходит в sheduler)
+Выполнение замтеки (удаление времени напоминания)
+Обновление времени напоминания
+"""
 
 
 class ChangeTimeState(StatesGroup):
     WAITING_NEW_TIME = State()
     
 
-async def notify(user_id: int, note_id: int, note_title: str, note_text: str):  
+async def notify(user_id: int, note_id: int, note_title: str, note_text: str): 
+    """
+    Функция запускается, когда sheduler обнаруживает заметку,
+    у которой наступило время напоминания
+    """
     kbrd = await notify_note_kbrd(note_id)
     
     await bot.send_message(
         chat_id=user_id, 
-        text=f'Пришло время напомнить:\n\n*{note_title}*\n{note_text}',
+        text=f'{emoji.bell} Пришло время напомнить:\n\n*{note_title}*\n{note_text}',
         reply_markup=kbrd,
         parse_mode='Markdown'
     )
@@ -29,12 +43,10 @@ async def complete_note_call(callback_query: CallbackQuery):
     await callback_query.answer()
     await complete_note(callback_query)
     
-@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('complete'), state='*')
+@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('complete'), state = '*')
 async def complete_note_state(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
-    
     await state.finish()
-    
     await complete_note(callback_query)
 
 async def complete_note(callback_query: CallbackQuery):  
@@ -43,7 +55,7 @@ async def complete_note(callback_query: CallbackQuery):
     await pg.execute(query, note_id, execute=True)
     
     await callback_query.message.answer(
-        text='Заметка выполнена, но не удалена',
+        text=f'{emoji.checkmark} Заметка выполнена, но не удалена',
         reply_markup=return_kbrd
     )
 
@@ -58,7 +70,7 @@ async def handle_every_note(callback_query: CallbackQuery, state: FSMContext):
     kbrd = await new_time_kbrd(note_id)
     
     await callback_query.message.answer(
-        text='Введи новое время для напоминания в формате "дд.мм.гггг чч:мм"',
+        text=f'{emoji.pushpin} Введи новое время для напоминания в формате "дд.мм.гггг чч:мм"',
         reply_markup=kbrd
     )
     
@@ -77,24 +89,25 @@ async def get_new_time(message: Message, state: FSMContext):
     if note_time:
         try:
             note_time = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
-            
             if note_time <= datetime.now():
                 await message.answer(
-                    text='Это время выбрать невозможно, оно уже прошло...',
+                    text=f'{emoji.exclaim} Это время выбрать невозможно, оно уже прошло...',
                     reply_markup=kbrd
                 )
                 return
         except ValueError:
             await message.answer(
-                text='Неверный формат даты и времени :( Попробуй еще раз',
+                text=f'{emoji.exclaim} Неверный формат даты и времени... Попробуй еще раз',
                 reply_markup=kbrd
             )
+            return
     
     query = """ UPDATE notes SET reminder_time = $1 WHERE id = $2; """
     await pg.execute(query, note_time, note_id, execute=True)
         
     await message.answer(
-        text='Заметка успешно обновлена!',
+        text=f'{emoji.checkmark} Заметка успешно обновлена!',
         reply_markup=return_kbrd
     )
+    
     await state.finish()

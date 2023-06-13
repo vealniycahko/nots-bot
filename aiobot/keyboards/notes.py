@@ -4,6 +4,12 @@ from typing import List
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
+"""
+Специальные инлайн клавиатуры,
+которые генерируют коллбэки с айдишниками заметок для дальнейшей их обработки
+"""
+
+
 async def notes_inline_kbrd(notes: List[Record]) -> InlineKeyboardMarkup:
     notes_kbrd = InlineKeyboardMarkup(
         one_time_keyboard=True,
@@ -47,7 +53,7 @@ async def single_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
 
 
 async def notify_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
-    note_kbrd = InlineKeyboardMarkup(
+    kbrd = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text='Готово', callback_data=f'complete{note_id}'),
@@ -62,7 +68,7 @@ async def notify_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
         resize_keyboard=True
     )
     
-    return note_kbrd
+    return kbrd
 
 
 async def new_time_kbrd(note_id: int) -> InlineKeyboardMarkup:

@@ -10,7 +10,7 @@ import handlers, middlewares, utils
 async def on_startup(dp: Dispatcher):
     await pg.create()
     await set_default_commands(dp)
-    
+        
     check_reminders.start()
     
 

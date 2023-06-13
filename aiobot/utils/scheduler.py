@@ -5,6 +5,15 @@ from loader import pg
 from handlers.notify import notify
 
 
+"""
+Функция уведомления о заметках
+
+С помощью крона выполняется каждую минуту и проверяет,
+наступило ли время напоминания для какой либо заметки
+Если находит такие заметки, то вызывает хендлер notify
+"""
+
+
 @aiocron.crontab('* * * * *', start=False)
 async def check_reminders():
     current_time = datetime.now().replace(second=0, microsecond=0)

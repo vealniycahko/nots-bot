@@ -1,6 +1,12 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
+"""
+Все инлайн клавиатуры, которые состоят из обычных кнопок
+и не содержат в своих коллбэках дополнительной информации
+"""
+
+
 skip_cancel_kbrd = InlineKeyboardMarkup(
     inline_keyboard=[
         [

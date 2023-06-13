@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import assert_never
 
 from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.storage import FSMContext
@@ -6,6 +7,13 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from loader import dp, pg
 from keyboards.buttons import skip_cancel_kbrd, cancel_kbrd, return_kbrd
+from utils import emoji
+
+
+"""
+Полный цикл создания заметки, включая класс состояний
+и обработку коллбэков при пропуске какого-либо этапа
+"""
 
 
 class CreateNoteStates(StatesGroup):
@@ -15,19 +23,20 @@ class CreateNoteStates(StatesGroup):
 
 
 @dp.message_handler(commands=['create'])
-async def create_note(message: Message, state: FSMContext):
-    await create_handler(message, state)
-
+async def create_note_command(message: Message, state: FSMContext):
+    await create_note(message, state)
 
 @dp.callback_query_handler(lambda callback_query: callback_query.data == 'create_call')
 async def create_note_call(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
-    await create_handler(callback_query.message, state)
+    await create_note(callback_query.message, state)
 
-
-async def create_handler(message: Message, state: FSMContext):
-    await message.answer(text='Введи название заметки', reply_markup=cancel_kbrd)
-            
+async def create_note(message: Message, state: FSMContext):
+    await message.answer(
+        text=f'{emoji.pushpin} Введи название заметки',
+        reply_markup=cancel_kbrd
+    )
+    
     await state.set_state(CreateNoteStates.WAITING_TITLE)
 
 
@@ -36,38 +45,51 @@ async def get_note_title(message: Message, state: FSMContext):
     note_title = message.text
     
     if len(note_title) > 100:
-        await message.answer('О, нет! Допустимо не более 100 символов. Попробуй еще раз', reply_markup=cancel_kbrd)      
+        await message.answer(
+            text=f'{emoji.exclaim} О, нет! Допустимо не более 100 символов. Попробуй еще раз',
+            reply_markup=cancel_kbrd
+        )      
     else:
-        await message.answer('Окей, теперь описание заметки', reply_markup=skip_cancel_kbrd)
+        await message.answer(
+            text=f'{emoji.pushpin} Продолжаем, теперь описание заметки',
+            reply_markup=skip_cancel_kbrd
+        )
+        
         await state.update_data(title=note_title)
         await state.set_state(CreateNoteStates.WAITING_TEXT)
         
         
 @dp.message_handler(state=CreateNoteStates.WAITING_TEXT)
 async def get_note_text(message: Message, state: FSMContext):
-    note_text = message.text if message.text else None
+    note_text = message.text
     
-    await message.answer('И последнее, дата напоминания в формате "дд.мм.гггг чч:мм"', reply_markup=skip_cancel_kbrd)
+    await message.answer(
+        text=f'{emoji.pushpin} Последнее, дата напоминания в формате "дд.мм.гггг чч:мм"',
+        reply_markup=skip_cancel_kbrd
+    )
+    
     await state.update_data(text=note_text)
     await state.set_state(CreateNoteStates.WAITING_TIME)
 
 
 @dp.message_handler(state=CreateNoteStates.WAITING_TIME)
 async def get_reminder_time(message: Message, state: FSMContext):
-    if message.text:
-        note_time = message.text
-        
-        try:
-            note_time = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
-            
-            if note_time <= datetime.now():
-                await message.answer('Это время выбрать невозможно, оно уже прошло...', reply_markup=skip_cancel_kbrd)
-                return
-        
-        except ValueError:
-            await message.answer('Неверный формат даты и времени :( Попробуй еще раз', reply_markup=skip_cancel_kbrd)
-    else:
-        note_time = None
+    note_time = message.text
+    
+    try:
+        note_time = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
+        if note_time <= datetime.now():
+            await message.answer(
+                text=f'{emoji.exclaim} Это время выбрать невозможно, оно уже прошло...',
+                reply_markup=skip_cancel_kbrd
+            )
+            return
+    except ValueError:
+        await message.answer(
+            text=f'{emoji.exclaim} Неверный формат даты и времени... Попробуй еще раз',
+            reply_markup=skip_cancel_kbrd
+        )
+        return
     
     data = await state.get_data()
     
@@ -79,16 +101,22 @@ async def get_reminder_time(message: Message, state: FSMContext):
     values = (owner_id, note_title, note_text, note_time)
     await pg.execute(query, *values, execute=True)
         
-    await message.answer('Успех! Заметка создана', reply_markup=return_kbrd)
+    await message.answer(
+        text=f'{emoji.checkmark} Успех! Заметка создана',
+        reply_markup=return_kbrd
+    )
+    
     await state.finish()
 
 
-@dp.callback_query_handler(lambda callback_query: callback_query.data == 'skip_data_call', state='*')
-async def skip_note_title(callback_query: CallbackQuery, state: FSMContext):
+@dp.callback_query_handler(lambda callback_query: callback_query.data == 'skip_data_call', state = '*')
+async def skip_creation_step(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
     
-    callback_query.message.text = None # удаление значения text для дальнейшей проверки
-    callback_query.message.from_user.id = callback_query.from_user.id # чтобы не внести в базу айди бота, так как в случае пропуска последнего шага крайнее сообщение будет принадлежать боту
+    # отсутствие значения message.text при пропуске этапа
+    callback_query.message.text = None
+    # подмена айди бота на айди пользователя для внесения в базу данных
+    callback_query.message.from_user.id = callback_query.from_user.id 
     
     current_state = await state.get_state()
     if current_state == 'CreateNoteStates:WAITING_TEXT':
@@ -96,4 +124,4 @@ async def skip_note_title(callback_query: CallbackQuery, state: FSMContext):
     elif current_state == 'CreateNoteStates:WAITING_TIME':
         await get_reminder_time(callback_query.message, state)
     else:
-        pass # можно написать сообщение в лог об ошибке в логике приложения
+        assert_never(current_state)

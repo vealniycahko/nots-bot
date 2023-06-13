@@ -7,6 +7,14 @@ from asyncpg.pool import Pool
 from utils import config
 
 
+"""
+Поключение к базе данных
+
+Создание пула соединений (выполняется при запуске бота)
+И функция execute для выполнения запросов (для сложных запросов следует создавать дополнительные функции здесь)
+"""
+
+
 class DataBase:
     def __init__(self):
         self.pool: Union[Pool, None] = None

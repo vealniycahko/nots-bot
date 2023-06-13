@@ -2,6 +2,5 @@
 /__pycache__/
 /venv/
 /.python-version
-/bot/logs/bot.log
 .env
 todo.txt

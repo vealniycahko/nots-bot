@@ -76,20 +76,21 @@ async def get_note_text(message: Message, state: FSMContext):
 async def get_reminder_time(message: Message, state: FSMContext):
     note_time = message.text
     
-    try:
-        note_time = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
-        if note_time <= datetime.now():
+    if note_time:
+        try:
+            note_time = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
+            if note_time <= datetime.now():
+                await message.answer(
+                    text=f'{emoji.exclaim} Это время выбрать невозможно, оно уже прошло...',
+                    reply_markup=skip_cancel_kbrd
+                )
+                return
+        except ValueError:
             await message.answer(
-                text=f'{emoji.exclaim} Это время выбрать невозможно, оно уже прошло...',
+                text=f'{emoji.exclaim} Неверный формат даты и времени... Попробуй еще раз',
                 reply_markup=skip_cancel_kbrd
             )
             return
-    except ValueError:
-        await message.answer(
-            text=f'{emoji.exclaim} Неверный формат даты и времени... Попробуй еще раз',
-            reply_markup=skip_cancel_kbrd
-        )
-        return
     
     data = await state.get_data()
     

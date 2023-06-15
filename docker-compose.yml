@@ -2,7 +2,7 @@ version: '3.9'
 services:
   postgres:
     container_name: app-postgres
-    image: postgres:latest
+    image: postgres:15.3
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASS}
@@ -20,9 +20,26 @@ services:
       retries: 5
     restart: unless-stopped
   
+  redis:
+    container_name: app-redis
+    image: redis:7.0
+    command: redis-server --save 60 1 --appendonly yes --requirepass ${REDIS_PASS}
+    ports:
+      - "${REDIS_PORT}:6379"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - notes-bot-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   flyway:
     container_name: app-flyway
-    image: flyway/flyway:latest
+    image: flyway/flyway
     command: -url=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_NAME} -user=${POSTGRES_USER} -password=${POSTGRES_PASS} migrate
     depends_on:
       postgres:
@@ -44,8 +61,15 @@ services:
       - POSTGRES_NAME=${POSTGRES_NAME}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASS=${POSTGRES_PASS}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASS=${REDIS_PASS}
+      - REDIS_DB=${REDIS_DB}
+      - REDIS_ENCODING=${REDIS_ENCODING}
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       flyway:
         condition: service_completed_successfully
@@ -55,3 +79,4 @@ services:
 
 volumes:
   notes-bot-pg:
+  notes-bot-redis:

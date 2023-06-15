@@ -8,14 +8,14 @@ from utils import config
 
 
 """
-Поключение к базе данных
+Поключение к базе данных PostgreSQL
 
 Создание пула соединений (выполняется при запуске бота)
 И функция execute для выполнения запросов (для сложных запросов следует создавать дополнительные функции здесь)
 """
 
 
-class DataBase:
+class PostgresDB:
     def __init__(self):
         self.pool: Union[Pool, None] = None
 

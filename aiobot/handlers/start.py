@@ -1,4 +1,3 @@
-from typing import assert_never
 from numdeclination import NumDeclination
 
 from aiogram.types import Message, CallbackQuery
@@ -55,4 +54,4 @@ async def start(message: Message):
             reply_markup=start_kbrd
         )
     else:
-        assert_never(count)
+        logger.error(f'The logic of work is broken. Unexpected count: {count}')

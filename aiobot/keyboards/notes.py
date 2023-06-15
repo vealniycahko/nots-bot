@@ -1,5 +1,6 @@
 from asyncpg import Record
 from typing import List
+from datetime import timedelta
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -10,7 +11,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 """
 
 
-async def notes_inline_kbrd(notes: List[Record]) -> InlineKeyboardMarkup:
+async def notes_inline_kbrd(notes: List[Record], tz: int) -> InlineKeyboardMarkup:
     notes_kbrd = InlineKeyboardMarkup(
         one_time_keyboard=True,
         resize_keyboard=True
@@ -18,7 +19,8 @@ async def notes_inline_kbrd(notes: List[Record]) -> InlineKeyboardMarkup:
     
     for row in notes:
         if row['reminder_time']:
-            text = f'{row["note_title"]} {row["reminder_time"].strftime("%d.%m.%Y %H:%M")}'
+            reminder_time = row['reminder_time'] + timedelta(hours=int(tz))
+            text = f'{row["note_title"]} {reminder_time.strftime("%d.%m.%Y %H:%M")}'
         else:
             text = f'{row["note_title"]}'
         callback = f'open{row["id"]}'
@@ -33,7 +35,7 @@ async def notes_inline_kbrd(notes: List[Record]) -> InlineKeyboardMarkup:
     return notes_kbrd
 
 
-async def single_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
+async def single_note_kbrd(note_id: str) -> InlineKeyboardMarkup:
     note_kbrd = InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -52,7 +54,7 @@ async def single_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
     return note_kbrd
 
 
-async def notify_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
+async def notify_note_kbrd(note_id: str) -> InlineKeyboardMarkup:
     kbrd = InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -71,7 +73,7 @@ async def notify_note_kbrd(note_id: int) -> InlineKeyboardMarkup:
     return kbrd
 
 
-async def new_time_kbrd(note_id: int) -> InlineKeyboardMarkup:
+async def new_time_kbrd(note_id: str) -> InlineKeyboardMarkup:
     kbrd = InlineKeyboardMarkup(
         inline_keyboard=[
             [

@@ -15,5 +15,6 @@ async def set_default_commands(dp: Dispatcher):
             BotCommand('start', 'просто начать'),
             BotCommand('notes', 'просмотр заметок'),
             BotCommand('create', 'создать заметку'),
+            BotCommand('timezone', 'изменить часовой пояс'),
         ]
     )

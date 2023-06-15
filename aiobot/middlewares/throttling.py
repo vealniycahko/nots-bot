@@ -10,6 +10,7 @@ from aiogram.utils.exceptions import Throttled
 
 """
 Немного измененная middleware из примеров aiogram
+Защищает от спама (в теории)
 """
 
 

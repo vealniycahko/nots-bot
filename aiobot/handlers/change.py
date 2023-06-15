@@ -1,18 +1,20 @@
-from datetime import datetime
-from typing import assert_never
+from datetime import datetime, timedelta
 
 from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from loader import dp, pg
+from loader import dp, pg, rd, logger
 from keyboards.buttons import skip_update_kbrd, skip_clean_update_kbrd, return_kbrd
+from keyboards.timezone import time_zone_kbrd
 from utils import emoji
 
 
 """
 В этом модуле хендлеры для цикла обновления данных заметки,
-включая обработку коллбэков пропуска этапа и удаления текущего значения
+
+включая обработку коллбэков пропуска этапа и удаления текущего значения,
+а также получение часового пояса пользователя, если он не задан
 """
 
 
@@ -20,6 +22,7 @@ class ChangeNoteStates(StatesGroup):
     WAITING_NEW_TITLE = State()
     WAITING_NEW_TEXT = State()
     WAITING_NEW_TIME = State()
+    WAITING_TZ = State()
 
 
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('change'))
@@ -27,7 +30,7 @@ async def start_change(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
     
     query = """ SELECT * FROM notes WHERE id = $1; """
-    note_id = int(callback_query.data[6:])
+    note_id = callback_query.data[6:]
     note = await pg.execute(query, note_id, fetchrow=True)
         
     await state.update_data(note_id=note_id)
@@ -96,27 +99,63 @@ async def get_new_text(message: Message, state: FSMContext):
 @dp.message_handler(state=ChangeNoteStates.WAITING_NEW_TIME)
 async def get_new_time(message: Message, state: FSMContext):
     note_time = message.text
+    await state.update_data(new_time=note_time)
+    
+    user_id = message.from_user.id
+    await state.update_data(user_id=user_id)
     
     if note_time:
         try:
             note_time = datetime.strptime(note_time, '%d.%m.%Y %H:%M')
-            if note_time <= datetime.now():
-                await message.answer(
-                    text=f'{emoji.exclaim} Это время выбрать невозможно, оно уже прошло...',
-                    reply_markup=skip_update_kbrd
-                )
-                return
         except ValueError:
             await message.answer(
                 text=f'{emoji.exclaim} Неверный формат даты и времени... Попробуй еще раз',
                 reply_markup=skip_update_kbrd
             )
             return
+    
+        await state.update_data(new_time=note_time)
         
+        tz = await rd.get_tz(user_id)
+        
+        if tz:
+            offset = timedelta(hours=int(tz))
+            note_time = note_time - offset
+            await state.update_data(new_time=note_time)
+            await complete_updating(message, state)
+        else:
+            await message.answer(
+                text=f'{emoji.pushpin} Выбери свой часовой пояс в формате UTC(ты сможешь его изменить)\nЧасовой пояс Москвы по UTC - +3:00 и так далее',
+                reply_markup=time_zone_kbrd
+            )
+            await state.set_state(ChangeNoteStates.WAITING_TZ)
+    else:
+        await complete_updating(message, state)
+
+
+@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('tz'), state=ChangeNoteStates.WAITING_TZ)
+async def get_time_zone(callback_query: CallbackQuery, state: FSMContext):
+    await callback_query.answer()
+    
+    data = await state.get_data()
+    user_id = data.get('user_id')
+    note_time = data.get('new_time')
+    
+    tz = int(callback_query.data[2:])
+    await rd.set_tz(user_id, tz)
+    
+    offset = timedelta(hours=tz)
+    note_time = note_time - offset
+    await state.update_data(new_time=note_time)
+    await complete_updating(callback_query.message, state)
+    
+    
+async def complete_updating(message: Message, state: FSMContext):    
     data = await state.get_data()
     
     note_title = data.get('new_title')
     note_text = data.get('new_text')
+    note_time = data.get('new_time')
     note_id = data.get('note_id')
     
     # проверка != False, чтобы выполнять действие при значении None, в том числе
@@ -129,7 +168,7 @@ async def get_new_time(message: Message, state: FSMContext):
     if note_time != False:
         query = """ UPDATE notes SET reminder_time = $1 WHERE id = $2; """
         await pg.execute(query, note_time, note_id, execute=True)
-        
+    
     await message.answer(
         text=f'{emoji.checkmark} Заметка успешно обновлена!',
         reply_markup=return_kbrd
@@ -144,6 +183,7 @@ async def skip_note_update(callback_query: CallbackQuery, state: FSMContext):
     
     # так как None используется для обнуления значения, тут False (это учитывается в get_new_time())
     callback_query.message.text = False
+    callback_query.message.from_user.id = callback_query.from_user.id
     
     current_state = await state.get_state()
     if current_state == 'ChangeNoteStates:WAITING_NEW_TITLE':
@@ -153,7 +193,7 @@ async def skip_note_update(callback_query: CallbackQuery, state: FSMContext):
     elif current_state == 'ChangeNoteStates:WAITING_NEW_TIME':
         await get_new_time(callback_query.message, state)
     else:
-        assert_never(current_state)
+        logger.error(f'The logic of work is broken. Unexpected state: {current_state}')
     
     
 @dp.callback_query_handler(lambda callback_query: callback_query.data == 'clean_update_call', state = '*')
@@ -161,6 +201,7 @@ async def clean_note_update(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
     
     callback_query.message.text = None
+    callback_query.message.from_user.id = callback_query.from_user.id
     
     current_state = await state.get_state()
     if current_state == 'ChangeNoteStates:WAITING_NEW_TEXT':
@@ -168,4 +209,4 @@ async def clean_note_update(callback_query: CallbackQuery, state: FSMContext):
     elif current_state == 'ChangeNoteStates:WAITING_NEW_TIME':
         await get_new_time(callback_query.message, state)
     else:
-        assert_never(current_state)
+        logger.error(f'The logic of work is broken. Unexpected state: {current_state}')

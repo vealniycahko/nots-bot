@@ -1,7 +1,9 @@
+from datetime import timedelta
+
 from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.storage import FSMContext
 
-from loader import dp, pg
+from loader import dp, pg, rd
 from keyboards.notes import notes_inline_kbrd, single_note_kbrd
 from keyboards.buttons import return_kbrd
 from utils import emoji
@@ -46,7 +48,9 @@ async def notes_list(message: Message):
     value = message.from_user.id
     notes = await pg.execute(query, value, fetch=True)
     
-    kbrd = await notes_inline_kbrd(notes)
+    tz = await rd.get_tz(message.from_user.id) or 3 # такой ситуации не должно возникать, это подстраховка
+    
+    kbrd = await notes_inline_kbrd(notes, tz)
 
     await message.answer(
         text=f'{emoji.manuscript} Нажми на заметку, чтобы посмотреть, изменить или удалить ее',
@@ -59,14 +63,17 @@ async def open_note(callback_query: CallbackQuery):
     await callback_query.answer()
     
     query = """ SELECT * FROM notes WHERE id = $1; """
-    note_id = int(callback_query.data[4:])
+    note_id = callback_query.data[4:]
     note = await pg.execute(query, note_id, fetchrow=True)
+    
+    tz = await rd.get_tz(callback_query.message.from_user.id) or 3
     
     text = f'*{note["note_title"]}*'
     if note["note_text"]:
         text += f'\n{note["note_text"]}'
     if note["reminder_time"]:
-        text += f'\n{note["reminder_time"].strftime("%d.%m.%Y %H:%M")}'
+        reminder_time = note['reminder_time'] + timedelta(hours=int(tz))
+        text += f'\n{reminder_time.strftime("%d.%m.%Y %H:%M")}'
     
     kbrd = await single_note_kbrd(note['id'])
     
@@ -90,7 +97,7 @@ async def dalete_note_state(callback_query: CallbackQuery, state: FSMContext):
     
 async def dalete_note(callback_query: CallbackQuery):   
     query = """ DELETE FROM notes WHERE id = $1; """
-    note_id = int(callback_query.data[6:])
+    note_id = callback_query.data[6:]
     await pg.execute(query, note_id, execute=True)
     
     await callback_query.message.answer(

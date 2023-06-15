@@ -16,7 +16,8 @@ from handlers.notify import notify
 
 @aiocron.crontab('* * * * *', start=False)
 async def check_reminders():
-    current_time = datetime.now().replace(second=0, microsecond=0)
+    # время заметок в бд в UTC, поэтому сравнивакм с utcnow()
+    current_time = datetime.utcnow().replace(second=0, microsecond=0)
 
     query = """ SELECT * FROM notes WHERE reminder_time = $1; """
     notes = await pg.execute(query, current_time, fetch=True)

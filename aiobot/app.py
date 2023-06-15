@@ -1,6 +1,6 @@
 from aiogram import Dispatcher, executor
 
-from loader import dp, pg
+from loader import dp, pg, rd
 from utils.commands import set_default_commands
 from utils.scheduler import check_reminders
 
@@ -9,6 +9,7 @@ import handlers, middlewares, utils
     
 async def on_startup(dp: Dispatcher):
     await pg.create()
+    await rd.create()
     await set_default_commands(dp)
         
     check_reminders.start()

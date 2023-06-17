@@ -1,10 +1,20 @@
 FROM python:3.10
 
-WORKDIR /notes_bot
+WORKDIR /nots_bot
 
-COPY requirements.txt .
-RUN pip3 install -r requirements.txt
+ENV PYTHONDONTWRITEBYTECODE 1 \
+    PYTHONUNBUFFERED 1
 
-COPY aiobot/ ./aiobot
-COPY logs/ ./logs
-COPY migrations/ ./migrations
+ENV POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_NO_INTERACTION=1
+
+ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
+
+COPY . .
+
+RUN apt-get update \
+    && apt-get install -y curl \
+    && curl -sSL https://install.python-poetry.org | python3.10 -
+
+RUN poetry install

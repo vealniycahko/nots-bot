@@ -1,4 +1,5 @@
 version: '3.9'
+
 services:
   postgres:
     container_name: app-postgres
@@ -53,19 +54,9 @@ services:
     container_name: app-bot
     build:
       dockerfile: ./Dockerfile
-    command: sh -c 'python3 aiobot/app.py'
-    environment:
-      - BOT_TOKEN=${BOT_TOKEN}
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_NAME=${POSTGRES_NAME}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASS=${POSTGRES_PASS}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASS=${REDIS_PASS}
-      - REDIS_DB=${REDIS_DB}
-      - REDIS_ENCODING=${REDIS_ENCODING}
+    command: sh -c 'poetry run python aiobot/app.py'
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy

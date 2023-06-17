@@ -1,5 +1,3 @@
-import asyncio
-
 from aiogram import Dispatcher
 from aiogram.types import Message
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT

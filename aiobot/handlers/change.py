@@ -40,7 +40,8 @@ async def start_change(callback_query: CallbackQuery, state: FSMContext):
     await state.update_data(old_time=note["reminder_time"])
 
     await callback_query.message.answer(
-        text=f'{emoji.pushpin} Название заметки:\n\n*{note["note_title"]}*\n\nНапиши новое название, либо нажми "Пропустить", чтобы оставить его прежним',
+        text=f'{emoji.pushpin} Название заметки:\n\n*{note["note_title"]}*\n\n\
+            Напиши новое название, либо нажми "Пропустить", чтобы оставить его прежним',
         reply_markup=skip_update_kbrd,
         parse_mode="Markdown",
     )
@@ -63,13 +64,15 @@ async def get_new_title(message: Message, state: FSMContext):
 
         if old_text:
             await message.answer(
-                text=f"{emoji.pushpin} Переходим к описанию:\n\n*{old_text}*\n\nМожешь отправить новое, пропустить этот шаг, либо убрать описание",
+                text=f"{emoji.pushpin} Переходим к описанию:\n\n*{old_text}*\n\n\
+                    Можешь отправить новое, пропустить этот шаг, либо убрать описание",
                 reply_markup=skip_clean_update_kbrd,
                 parse_mode="Markdown",
             )
         else:
             await message.answer(
-                text=f"{emoji.pushpin} Переходим к описанию. У этой заметки нет описания, но можно создать его, либо пропустить этот шаг",
+                text=f"{emoji.pushpin} Переходим к описанию. У этой заметки нет описания, \
+                    но можно создать его, либо пропустить этот шаг",
                 reply_markup=skip_update_kbrd,
             )
 
@@ -86,12 +89,14 @@ async def get_new_text(message: Message, state: FSMContext):
 
     if old_time:
         await message.answer(
-            text=f'{emoji.pushpin} Время напоминания:\n\n{old_time.strftime("%d.%m.%Y %H:%M")}\n\nВведи новое время в формате "дд.мм.гггг чч:мм", пропусти этот шаг или удали время',
+            text=f'{emoji.pushpin} Время напоминания:\n\n{old_time.strftime("%d.%m.%Y %H:%M")}\n\n\
+                Введи новое время в формате "дд.мм.гггг чч:мм", пропусти этот шаг или удали время',
             reply_markup=skip_clean_update_kbrd,
         )
     else:
         await message.answer(
-            text=f'{emoji.pushpin} У этой заметки нет времени напоминания, но ты можешь его создать: напиши его в формате "дд.мм.гггг чч:мм"',
+            text=f'{emoji.pushpin} У этой заметки нет времени напоминания, но ты можешь его создать: \
+                напиши его в формате "дд.мм.гггг чч:мм"',
             reply_markup=skip_update_kbrd,
         )
 
@@ -128,7 +133,8 @@ async def get_new_time(message: Message, state: FSMContext):
             await complete_updating(message, state)
         else:
             await message.answer(
-                text=f"{emoji.pushpin} Выбери свой часовой пояс в формате UTC(ты сможешь его изменить)\nЧасовой пояс Москвы по UTC - +3:00 и так далее",
+                text=f"{emoji.pushpin} Выбери свой часовой пояс в формате UTC(ты сможешь его изменить)\n\
+                    Часовой пояс Москвы по UTC - +3:00 и так далее",
                 reply_markup=time_zone_kbrd,
             )
             await state.set_state(ChangeNoteStates.WAITING_TZ)

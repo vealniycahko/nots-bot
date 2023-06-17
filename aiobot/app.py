@@ -4,7 +4,7 @@ from loader import dp, pg, rd
 from utils.commands import set_default_commands
 from utils.scheduler import check_reminders
 
-import handlers, middlewares, utils
+import handlers, middlewares  # для инициализации
 
 
 async def on_startup(dp: Dispatcher):

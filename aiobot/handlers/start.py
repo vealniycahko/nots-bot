@@ -3,7 +3,7 @@ from numdeclination import NumDeclination
 from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.storage import FSMContext
 
-from loader import dp, pg
+from loader import dp, pg, logger
 from keyboards.buttons import start_kbrd, create_kbrd
 from utils import emoji
 
@@ -55,7 +55,8 @@ async def start(message: Message):
         nd = NumDeclination()
         converted = nd.declinate(count, ["заметка", "заметки", "заметок"], type=1)
         await message.answer(
-            text=f"{emoji.folder} У тебя сейчас {converted.number} {converted.word}. Ты можешь создать еще или посмотреть список заметок",
+            text=f"{emoji.folder} У тебя сейчас {converted.number} {converted.word}. \
+                Ты можешь создать еще или посмотреть список заметок",
             reply_markup=start_kbrd,
         )
     else:

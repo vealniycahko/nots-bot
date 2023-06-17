@@ -43,11 +43,12 @@ async def timezone(message: Message):
 @dp.callback_query_handler(
     lambda callback_query: callback_query.data == "modify_timezone_call"
 )
-async def timezone_call(callback_query: CallbackQuery):
+async def modify_timezone_call(callback_query: CallbackQuery):
     await callback_query.answer()
 
     await callback_query.message.answer(
-        text=f"{emoji.pushpin} Выбери свой часовой пояс в формате UTC (ты сможешь его изменить)\nЧасовой пояс Москвы по UTC - +3:00 и так далее",
+        text=f"{emoji.pushpin} Выбери свой часовой пояс в формате UTC (ты сможешь его изменить)\n\
+            Часовой пояс Москвы по UTC - +3:00 и так далее",
         reply_markup=time_zone_kbrd,
     )
 

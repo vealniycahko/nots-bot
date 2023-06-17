@@ -105,7 +105,8 @@ async def get_reminder_time(message: Message, state: FSMContext):
             await complete_creation(message, state)
         else:
             await message.answer(
-                text=f"{emoji.pushpin} Выбери свой часовой пояс в формате UTC(ты сможешь его изменить)\nЧасовой пояс Москвы по UTC - +3:00 и так далее",
+                text=f"{emoji.pushpin} Выбери свой часовой пояс в формате UTC(ты сможешь его изменить)\n\
+                    Часовой пояс Москвы по UTC - +3:00 и так далее",
                 reply_markup=time_zone_kbrd,
             )
             await state.set_state(CreateNoteStates.WAITING_TZ)
@@ -141,7 +142,8 @@ async def complete_creation(message: Message, state: FSMContext):
     note_time = data.get("time")
     owner_id = data.get("user_id")
 
-    query = """ INSERT INTO notes (owner_id, note_title, note_text, reminder_time) VALUES ($1, $2, $3, $4); """
+    query = """ INSERT INTO notes (owner_id, note_title, note_text, reminder_time)
+        VALUES ($1, $2, $3, $4); """
     values = (owner_id, note_title, note_text, note_time)
     await pg.execute(query, *values, execute=True)
 

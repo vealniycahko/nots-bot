@@ -14,7 +14,7 @@ from handlers.notify import notify
 """
 
 
-@aiocron.crontab('* * * * *', start=False)
+@aiocron.crontab("* * * * *", start=False)
 async def check_reminders():
     # время заметок в бд в UTC, поэтому сравнивакм с utcnow()
     current_time = datetime.utcnow().replace(second=0, microsecond=0)
@@ -23,9 +23,9 @@ async def check_reminders():
     notes = await pg.execute(query, current_time, fetch=True)
 
     for note in notes:
-        user_id = note['owner_id']
-        note_id = note['id']
-        note_title = note['note_title']
-        note_text = note['note_text']
+        user_id = note["owner_id"]
+        note_id = note["id"]
+        note_title = note["note_title"]
+        note_text = note["note_text"]
 
         await notify(user_id, note_id, note_title, note_text)

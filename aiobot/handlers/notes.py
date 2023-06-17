@@ -18,24 +18,29 @@ from utils import emoji
 """
 
 
-@dp.message_handler(commands=['notes'])
+@dp.message_handler(commands=["notes"])
 async def notes_list_command(message: Message):
     await notes_list(message)
 
-@dp.callback_query_handler(lambda callback_query: callback_query.data == 'notes_call')
+
+@dp.callback_query_handler(lambda callback_query: callback_query.data == "notes_call")
 async def notes_list_call(callback_query: CallbackQuery):
     await callback_query.answer()
     callback_query.message.from_user.id = callback_query.from_user.id
-    
+
     await notes_list(callback_query.message)
-    
-@dp.callback_query_handler(lambda callback_query: callback_query.data == 'notes_call', state = '*')
+
+
+@dp.callback_query_handler(
+    lambda callback_query: callback_query.data == "notes_call", state="*"
+)
 async def notes_list_state(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
     callback_query.message.from_user.id = callback_query.from_user.id
     await state.finish()
-    
+
     await notes_list(callback_query.message)
+
 
 async def notes_list(message: Message):
     # максимальное количество инлайн кнопок - 100 штук
@@ -47,60 +52,67 @@ async def notes_list(message: Message):
     """
     value = message.from_user.id
     notes = await pg.execute(query, value, fetch=True)
-    
-    tz = await rd.get_tz(message.from_user.id) or 3 # такой ситуации не должно возникать, это подстраховка
-    
+
+    tz = (
+        await rd.get_tz(message.from_user.id) or 3
+    )  # такой ситуации не должно возникать, это подстраховка
+
     kbrd = await notes_inline_kbrd(notes, tz)
 
     await message.answer(
-        text=f'{emoji.manuscript} Нажми на заметку, чтобы посмотреть, изменить или удалить ее',
-        reply_markup=kbrd
+        text=f"{emoji.manuscript} Нажми на заметку, чтобы посмотреть, изменить или удалить ее",
+        reply_markup=kbrd,
     )
 
 
-@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('open'))
+@dp.callback_query_handler(
+    lambda callback_query: callback_query.data.startswith("open")
+)
 async def open_note(callback_query: CallbackQuery):
     await callback_query.answer()
-    
+
     query = """ SELECT * FROM notes WHERE id = $1; """
     note_id = callback_query.data[4:]
     note = await pg.execute(query, note_id, fetchrow=True)
-    
+
     tz = await rd.get_tz(callback_query.message.from_user.id) or 3
-    
+
     text = f'*{note["note_title"]}*'
     if note["note_text"]:
         text += f'\n{note["note_text"]}'
     if note["reminder_time"]:
-        reminder_time = note['reminder_time'] + timedelta(hours=int(tz))
+        reminder_time = note["reminder_time"] + timedelta(hours=int(tz))
         text += f'\n{reminder_time.strftime("%d.%m.%Y %H:%M")}'
-    
-    kbrd = await single_note_kbrd(note['id'])
-    
-    await callback_query.message.answer(
-        text=text,
-        reply_markup=kbrd,
-        parse_mode='Markdown'
-    )
-    
 
-@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('delete'))
+    kbrd = await single_note_kbrd(note["id"])
+
+    await callback_query.message.answer(
+        text=text, reply_markup=kbrd, parse_mode="Markdown"
+    )
+
+
+@dp.callback_query_handler(
+    lambda callback_query: callback_query.data.startswith("delete")
+)
 async def dalete_note_call(callback_query: CallbackQuery):
     await callback_query.answer()
     await dalete_note(callback_query)
-    
-@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith('delete'), state = '*')
+
+
+@dp.callback_query_handler(
+    lambda callback_query: callback_query.data.startswith("delete"), state="*"
+)
 async def dalete_note_state(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
     await state.finish()
     await dalete_note(callback_query)
-    
-async def dalete_note(callback_query: CallbackQuery):   
+
+
+async def dalete_note(callback_query: CallbackQuery):
     query = """ DELETE FROM notes WHERE id = $1; """
     note_id = callback_query.data[6:]
     await pg.execute(query, note_id, execute=True)
-    
+
     await callback_query.message.answer(
-        text=f'{emoji.greencross} Заметка успешно уделена',
-        reply_markup=return_kbrd
+        text=f"{emoji.greencross} Заметка успешно уделена", reply_markup=return_kbrd
     )

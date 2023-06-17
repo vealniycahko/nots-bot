@@ -25,15 +25,18 @@ class PostgresDB:
             password=config.POSTGRES_PASS,
             host=config.POSTGRES_HOST,
             database=config.POSTGRES_NAME,
-            port=config.POSTGRES_PORT
+            port=config.POSTGRES_PORT,
         )
 
-    async def execute(self, command, *args,
-                      fetch: bool = False,
-                      fetchval: bool = False,
-                      fetchrow: bool = False,
-                      execute: bool = False
-                      ):
+    async def execute(
+        self,
+        command,
+        *args,
+        fetch: bool = False,
+        fetchval: bool = False,
+        fetchrow: bool = False,
+        execute: bool = False
+    ):
         async with self.pool.acquire() as connection:
             connection: Connection
             async with connection.transaction():
